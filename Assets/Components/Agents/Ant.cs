@@ -239,6 +239,13 @@ namespace Antymology.Agents
                 return false;
             }
 
+            // Check if below the target position is solid (can't be floating)
+            AbstractBlock belowTargetBlock = WorldManager.Instance.GetBlock(targetPos.x, targetPos.y-1, targetPos.z);
+            if (!belowTargetBlock.isVisible())
+            {
+                return false;
+            }
+
             // Valid move - update position
             AntManager.Instance.UpdateAntPosition(this, worldPosition, targetPos);
             worldPosition = targetPos;
