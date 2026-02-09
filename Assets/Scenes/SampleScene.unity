@@ -440,7 +440,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   antPrefab: {fileID: 1898501010560801385, guid: 85e471deca645454e844f96c3a2a112c,
     type: 3}
-  queenAntPrefab: {fileID: 4133779400332585728, guid: c3e0c6666c68c294c851b34b6dc72047,
+  queenAntPrefab: {fileID: 1925804244567938370, guid: acb2b9f8e754aa54f8b963a479e8d4a5,
     type: 3}
   blockMaterial: {fileID: 2100000, guid: 4db9d8fce1a69b74f81daf1375c9ed88, type: 2}
 --- !u!4 &964896558

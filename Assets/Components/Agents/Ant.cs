@@ -138,7 +138,8 @@ namespace Antymology.Agents
         /// </summary>
         protected virtual void ApplyHealthDecay()
         {
-            float decayAmount = AntConfiguration.Instance.HealthDecayRate;
+            // HealthDecayRate is specified in health units per second; scale by timestep duration so decay is proportional to real time
+            float decayAmount = AntConfiguration.Instance.HealthDecayRate * AntConfiguration.Instance.timestepDuration;
 
             // Check if standing on acidic block (2x decay)
             AbstractBlock currentBlock = WorldManager.Instance.GetBlock(worldPosition.x, worldPosition.y - 1, worldPosition.z);
@@ -218,12 +219,18 @@ namespace Antymology.Agents
         /// </summary>
         protected bool TryMove(Vector3Int direction)
         {
-            if (isMoving) return false;
+            if (isMoving)
+            {
+                return false;
+            }
 
             Vector3Int targetPos = worldPosition + direction;
 
             // Check bounds
-            if (!IsValidPosition(targetPos)) return false;
+            if (!IsValidPosition(targetPos))
+            {
+                return false;
+            }
 
             // Check height difference constraint
             int currentHeight = GetGroundHeight(worldPosition.x, worldPosition.z);
@@ -255,6 +262,7 @@ namespace Antymology.Agents
             isMoving = true;
             movementProgress = 0f;
 
+            Debug.Log($"[{name}] Moved to {worldPosition}");
             return true;
         }
 

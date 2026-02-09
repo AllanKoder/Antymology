@@ -289,8 +289,22 @@ namespace Antymology.Agents
                 }
             }
 
-            // Fallback: center of world at spawn level
-            return new Vector3Int(maxX / 2, AntConfiguration.Instance.SpawnYLevel, maxZ / 2);
+            // Fallback: choose center of world but place at actual ground level to avoid spawning in mid-air
+            int centerX = maxX / 2;
+            int centerZ = maxZ / 2;
+            int spawnY = AntConfiguration.Instance.SpawnYLevel;
+            for (int checkY = maxY - 1; checkY >= 0; checkY--)
+            {
+                AbstractBlock block = Antymology.Terrain.WorldManager.Instance.GetBlock(centerX, checkY, centerZ);
+                if (block.isVisible())
+                {
+                    spawnY = checkY + 1;
+                    break;
+                }
+            }
+            // Ensure spawnY is within bounds
+            spawnY = Mathf.Clamp(spawnY, 0, maxY - 1);
+            return new Vector3Int(centerX, spawnY, centerZ);
         }
 
         /// <summary>
@@ -303,8 +317,16 @@ namespace Antymology.Agents
             
             Vector3Int pos = new Vector3Int(center.x + offsetX, center.y, center.z + offsetZ);
 
-            // Make sure we're on solid ground
+            int maxX = ConfigurationManager.Instance.World_Diameter * ConfigurationManager.Instance.Chunk_Diameter;
+            int maxZ = ConfigurationManager.Instance.World_Diameter * ConfigurationManager.Instance.Chunk_Diameter;
             int maxY = ConfigurationManager.Instance.World_Height * ConfigurationManager.Instance.Chunk_Diameter;
+
+            // Clamp horizontal coordinates to world bounds to avoid spawning out of range
+            pos.x = Mathf.Clamp(pos.x, 0, maxX - 1);
+            pos.z = Mathf.Clamp(pos.z, 0, maxZ - 1);
+            pos.y = Mathf.Clamp(pos.y, 0, maxY - 1);
+
+            // Make sure we're on solid ground
             for (int y = pos.y; y >= 0; y--)
             {
                 AbstractBlock block = Antymology.Terrain.WorldManager.Instance.GetBlock(pos.x, y, pos.z);
@@ -314,6 +336,9 @@ namespace Antymology.Agents
                     break;
                 }
             }
+
+            // Ensure final y is within bounds
+            pos.y = Mathf.Clamp(pos.y, 0, maxY - 1);
 
             return pos;
         }
