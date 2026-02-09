@@ -80,9 +80,9 @@ namespace Antymology.Agents
             for (int i = 0; i < PopulationSize; i++)
             {
                 Ant.BehaviorGenome g = new Ant.BehaviorGenome(
-                    Random.Range(0.02f, 0.2f),
-                    Random.Range(0.005f, 0.2f),
-                    Random.Range(0.005f, 0.05f)
+                    Random.Range(0.0f, 0.5f),
+                    Random.Range(0.0f, 0.1f),
+                    Random.Range(0.0f, 0.05f)
                 );
                 population.Add(g);
                 fitnesses.Add(0);
