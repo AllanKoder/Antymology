@@ -195,23 +195,23 @@ namespace Antymology.Agents
             // Base implementation: random walk
             if (!isMoving && Random.value < 0.1f)
             {
-                // Try to move in a random direction
+                // Try to move in a random horizontal direction (4-way)
                 Vector3Int[] directions = new Vector3Int[]
                 {
                     Vector3Int.right,
                     Vector3Int.left,
                     Vector3Int.forward,
-                    new Vector3Int(0, 0, -1), // back
-                    Vector3Int.up,
-                    Vector3Int.down
+                    new Vector3Int(0, 0, -1) // back
                 };
 
                 Vector3Int randomDir = directions[Random.Range(0, directions.Length)];
                 TryMove(randomDir);
             }
-
-            // Try to eat if on mulch and low 
-            TryEat();
+            else
+            {
+                // Try to eat if on mulch and low 
+                TryEat();
+            }
         }
 
         /// <summary>
@@ -224,7 +224,27 @@ namespace Antymology.Agents
                 return false;
             }
 
-            Vector3Int targetPos = worldPosition + direction;
+            // Only use horizontal components and normalize to single-step
+            int dx = Mathf.Clamp(direction.x, -1, 1);
+            int dz = Mathf.Clamp(direction.z, -1, 1);
+            if (dx == 0 && dz == 0)
+                return false;
+
+            int targetX = worldPosition.x + dx;
+            int targetZ = worldPosition.z + dz;
+
+            // Determine ground heights at current and target columns
+            int currentGround = GetGroundHeight(worldPosition.x, worldPosition.z);
+            int targetGround = GetGroundHeight(targetX, targetZ);
+
+            // Block if height difference too large
+            if (Mathf.Abs(targetGround - currentGround) > AntConfiguration.Instance.MaxHeightDifference)
+            {
+                return false;
+            }
+
+            int targetY = targetGround + 1; // ants occupy the block above ground
+            Vector3Int targetPos = new Vector3Int(targetX, targetY, targetZ);
 
             // Check bounds
             if (!IsValidPosition(targetPos))
@@ -232,37 +252,27 @@ namespace Antymology.Agents
                 return false;
             }
 
-            // Check height difference constraint
-            int currentHeight = GetGroundHeight(worldPosition.x, worldPosition.z);
-            int targetHeight = GetGroundHeight(targetPos.x, targetPos.z);
-
-            if (Mathf.Abs(targetHeight - currentHeight) > AntConfiguration.Instance.MaxHeightDifference)
-            {
-                return false;
-            }
-
-            // Check if target position is solid (can't move into solid blocks)
+            // Check if target space is free
             AbstractBlock targetBlock = WorldManager.Instance.GetBlock(targetPos.x, targetPos.y, targetPos.z);
             if (targetBlock.isVisible())
             {
                 return false;
             }
 
-            // Check if below the target position is solid (can't be floating)
-            AbstractBlock belowTargetBlock = WorldManager.Instance.GetBlock(targetPos.x, targetPos.y-1, targetPos.z);
+            // Ensure there's support under target
+            AbstractBlock belowTargetBlock = WorldManager.Instance.GetBlock(targetPos.x, targetPos.y - 1, targetPos.z);
             if (!belowTargetBlock.isVisible())
             {
                 return false;
             }
 
-            // Valid move - update position
+            // Valid move - update position and start interpolation
             AntManager.Instance.UpdateAntPosition(this, worldPosition, targetPos);
             worldPosition = targetPos;
             targetWorldPosition = new Vector3(targetPos.x, targetPos.y, targetPos.z);
             isMoving = true;
             movementProgress = 0f;
 
-            Debug.Log($"[{name}] Moved to {worldPosition}");
             return true;
         }
 
@@ -295,7 +305,6 @@ namespace Antymology.Agents
                     AntManager.Instance.UpdateAntPosition(this, oldPos, newPos);
                     worldPosition = newPos;
                     targetWorldPosition = new Vector3(newPos.x, newPos.y, newPos.z);
-                    transform.position = targetWorldPosition;
                 }
 
                 // Ensure movement interpolation does not override the teleport; stop any active movement

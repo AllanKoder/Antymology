@@ -166,14 +166,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fade7e597b5ccd3489aa1e0a707489ad, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AntConfiguration
-  WorkerAntCount: 260
+  WorkerAntCount: 100
   MaxWorkerHealth: 100
   MaxQueenHealth: 150
-  HealthDecayRate: 0.5
+  HealthDecayRate: 1
   MulchHealthRestore: 30
   MaxHeightDifference: 2
   MovementSpeed: 2
-  timestepDuration: 0.1
+  timestepDuration: 0.02
   NestProductionHealthCost: 0.33
   SpawnYLevel: 20
   SpawnRadius: 60
