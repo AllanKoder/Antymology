@@ -55,6 +55,8 @@ namespace Antymology.Agents
         /// Movement progress for interpolation.
         /// </summary>
         protected float movementProgress = 0f;
+        protected int digCooldownRemaining = 0;
+        protected int eatCooldownRemaining = 0;
 
         #endregion
 
@@ -72,12 +74,21 @@ namespace Antymology.Agents
             public float moveProbability;
             public float digProbability;
             public float eatProbability;
+            public int ticksBetweenDigs;
+            public int ticksBetweenEats;
 
-            public BehaviorGenome(float moveProb, float digProb, float eatProb)
+            public BehaviorGenome(float moveProb, float digProb, float eatProb, int ticksBetweenDigs = 3, int ticksBetweenEats = 3)
             {
-                moveProbability = moveProb;
-                digProbability = digProb;
-                eatProbability = eatProb;
+                this.moveProbability = moveProb;
+                this.digProbability = digProb;
+                this.eatProbability = eatProb;
+                this.ticksBetweenDigs = ticksBetweenDigs;
+                this.ticksBetweenEats = ticksBetweenEats;
+            }
+
+            public override string ToString()
+            {
+                return $"move:{moveProbability:F2} dig:{digProbability:F2} eat:{eatProbability:F2} digs:({ticksBetweenDigs}) eats:({ticksBetweenEats})";
             }
         }
 
@@ -151,6 +162,10 @@ namespace Antymology.Agents
 
             // Apply health decay
             ApplyHealthDecay();
+
+            // Decrement any action cooldowns
+            if (digCooldownRemaining > 0) digCooldownRemaining--;
+            if (eatCooldownRemaining > 0) eatCooldownRemaining--;
 
             // Make decisions and perform actions
             MakeDecision();
@@ -245,14 +260,14 @@ namespace Antymology.Agents
                 // If there's diggable material beneath, attempt to dig with genome probability
                 AbstractBlock blockBelow = WorldManager.Instance.GetBlock(worldPosition.x, worldPosition.y - 1, worldPosition.z);
                 bool validBlock = blockBelow != null && !(blockBelow is ContainerBlock) && !(blockBelow is AirBlock);
-                if (!isMoving && validBlock && Random.value < Genome.digProbability)
+                if (!isMoving && validBlock && Random.value < Genome.digProbability && digCooldownRemaining <= 0)
                 {
                     TryDig();
                 }
-                else if (Random.value < Genome.eatProbability)
+                else if (Random.value < Genome.eatProbability && eatCooldownRemaining <= 0)
                 {
-                    // Try to eat if on mulch and low
-                    TryEat();
+                    // Try to eat if on mulch and low; set cooldown when successful
+                    if (TryEat()) eatCooldownRemaining = Genome.ticksBetweenEats;
                 }
             }
         }
@@ -367,8 +382,24 @@ namespace Antymology.Agents
                 return false;
             }
 
+            // Prevent digging if it would create a dangerous fall (no support two blocks down)
+            if (worldPosition.y - 2 < 0)
+            {
+                // too close to bottom; don't dig
+                return false;
+            }
+            AbstractBlock twoBelow = WorldManager.Instance.GetBlock(worldPosition.x, worldPosition.y - 2, worldPosition.z);
+            if (!twoBelow.isVisible())
+            {
+                // digging would remove the last immediate support and cause a fall; avoid it
+                return false;
+            }
+
             // Dig the block (remove it)
             WorldManager.Instance.SetBlock(worldPosition.x, worldPosition.y - 1, worldPosition.z, new AirBlock());
+            
+            // Set dig cooldown from genome
+            digCooldownRemaining = Genome.ticksBetweenDigs;
 
             // After digging, drop the ant down until it reaches solid ground.
             DropToGround();
