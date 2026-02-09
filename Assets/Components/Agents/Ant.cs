@@ -7,6 +7,20 @@ namespace Antymology.Agents
     /// <summary>
     /// Base class for ant agents. Handles health, movement, and basic behaviors.
     /// </summary>
+    public struct BehaviorGenome
+    {
+        public float moveProbability;
+        public float digProbability;
+        public float eatProbability;
+
+        public BehaviorGenome(float moveProb, float digProb, float eatProb, float speedMult)
+        {
+            moveProbability = moveProb;
+            digProbability = digProb;
+            eatProbability = eatProb;
+        }
+    }
+
     public class Ant : MonoBehaviour
     {
         #region Fields
@@ -64,6 +78,9 @@ namespace Antymology.Agents
         public bool IsAlive => isAlive;
         public virtual bool IsQueen => false;
 
+        // Behavior genome controlling probabilities and speed
+        public BehaviorGenome Genome { get; set; }
+
         #endregion
 
         #region Initialization
@@ -87,6 +104,9 @@ namespace Antymology.Agents
             // Set visual position
             transform.position = new Vector3(startPosition.x, startPosition.y, startPosition.z);
             targetWorldPosition = transform.position;
+
+            // Default genome so ants have sane behavior if not set by manager
+            Genome = new BehaviorGenome(0.1f, 0.008f, 0.01f);
 
             // Register with manager
             AntManager.Instance.RegisterAnt(this);
@@ -203,8 +223,8 @@ namespace Antymology.Agents
         /// </summary>
         protected virtual void MakeDecision()
         {
-            // Base implementation: random walk
-            if (!isMoving && Random.value < 0.1f)
+            // Base implementation: random walk controlled by genome
+            if (!isMoving && Random.value < Genome.moveProbability)
             {
                 // Try to move in a random horizontal direction (4-way)
                 Vector3Int[] directions = new Vector3Int[]
@@ -220,13 +240,13 @@ namespace Antymology.Agents
             }
             else
             {
-                // If there's diggable material beneath, attempt to dig with some probability
+                // If there's diggable material beneath, attempt to dig with genome probability
                 AbstractBlock blockBelow = WorldManager.Instance.GetBlock(worldPosition.x, worldPosition.y - 1, worldPosition.z);
-                if (!isMoving && blockBelow != null && !(blockBelow is ContainerBlock) && !(blockBelow is AirBlock) && Random.value < 0.008f)
+                if (!isMoving && blockBelow != null && !(blockBelow is ContainerBlock) && !(blockBelow is AirBlock) && Random.value < Genome.digProbability)
                 {
                     TryDig();
                 }
-                else if (Random.value < 0.01f)
+                else if (Random.value < Genome.eatProbability)
                 {
                     // Try to eat if on mulch and low
                     TryEat();

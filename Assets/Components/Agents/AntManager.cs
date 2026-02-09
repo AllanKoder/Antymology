@@ -85,6 +85,12 @@ namespace Antymology.Agents
                     ant.SimulationUpdate();
                 }
             }
+
+            // Let the EvolutionManager handle evolutionary progress if present
+            if (EvolutionManager.Instance != null)
+            {
+                EvolutionManager.Instance.Tick();
+            }
         }
 
         #endregion
@@ -191,50 +197,138 @@ namespace Antymology.Agents
         /// </summary>
         public void SpawnGeneration()
         {
+            // Delegate to EvolutionManager to start evolutionary runs
+            if (EvolutionManager.Instance != null)
+            {
+                EvolutionManager.Instance.StartEvolution();
+            }
+            else
+            {
+                // Fallback: spawn a single, non-evolving generation
+                ClearAllAnts();
+                totalNestsProduced = 0;
+
+                Vector3Int spawnCenter = FindSafeSpawnLocation();
+                for (int i = 0; i < AntConfiguration.Instance.WorkerAntCount; i++)
+                {
+                    Vector3Int spawnPos = FindNearbySpawnPosition(spawnCenter, AntConfiguration.Instance.SpawnRadius);
+                    SpawnWorkerAnt(spawnPos, new Ant.BehaviorGenome(0.1f, 0.008f, 0.01f, 1f));
+                }
+                Vector3Int queenSpawnPos = FindNearbySpawnPosition(spawnCenter, 2);
+                SpawnQueenAnt(queenSpawnPos, new Ant.BehaviorGenome(0.1f, 0.008f, 0.01f, 1f));
+
+                currentGeneration++;
+            }
+        }
+
+        private void StartEvaluationGenome(int index)
+        {
+            if (population == null || index < 0 || index >= population.Count) return;
             ClearAllAnts();
             totalNestsProduced = 0;
 
             // Find a safe spawn location
             Vector3Int spawnCenter = FindSafeSpawnLocation();
 
-            // Spawn worker ants
+            // Spawn worker ants with genome applied
             for (int i = 0; i < AntConfiguration.Instance.WorkerAntCount; i++)
             {
                 Vector3Int spawnPos = FindNearbySpawnPosition(spawnCenter, AntConfiguration.Instance.SpawnRadius);
-                SpawnWorkerAnt(spawnPos);
+                SpawnWorkerAnt(spawnPos, population[index]);
             }
 
             // Spawn queen ant
             Vector3Int queenSpawnPos = FindNearbySpawnPosition(spawnCenter, 2);
-            SpawnQueenAnt(queenSpawnPos);
+            SpawnQueenAnt(queenSpawnPos, population[index]);
 
-            currentGeneration++;
+            // Set evaluation step counter
+            evalStepsRemaining = StepsPerEvaluation;
+            // Reset nest counter
+            totalNestsProduced = 0;
+        }
+
+        private void InitializePopulation()
+        {
+            population = new List<Ant.BehaviorGenome>();
+            fitnesses = new List<int>();
+            for (int i = 0; i < PopulationSize; i++)
+            {
+                // Random genomes with sensible defaults
+                Ant.BehaviorGenome g = new Ant.BehaviorGenome(
+                    Random.Range(0.02f, 0.2f), // moveProbability
+                    Random.Range(0.005f, 0.2f), // digProbability
+                    Random.Range(0.005f, 0.05f), // eatProbability
+                    Random.Range(0.8f, 1.2f) // movementSpeedMultiplier
+                );
+                population.Add(g);
+                fitnesses.Add(0);
+            }
+        }
+
+        private void EvolvePopulation()
+        {
+            // Simple elitist selection: keep top 2
+            List<int> indices = new List<int>();
+            for (int i = 0; i < fitnesses.Count; i++) indices.Add(i);
+            indices.Sort((a, b) => fitnesses[b].CompareTo(fitnesses[a]));
+
+            List<Ant.BehaviorGenome> newPop = new List<Ant.BehaviorGenome>();
+
+            // Keep top 2 unchanged
+            int elites = Mathf.Min(2, population.Count);
+            for (int i = 0; i < elites; i++)
+            {
+                newPop.Add(population[indices[i]]);
+            }
+
+            // Fill rest by mutating elites
+            while (newPop.Count < population.Count)
+            {
+                Ant.BehaviorGenome parent = population[indices[Random.Range(0, elites)]];
+                Ant.BehaviorGenome child = parent;
+                // Mutation
+                child.moveProbability = Mathf.Clamp01(child.moveProbability + Random.Range(-0.02f, 0.02f));
+                child.digProbability = Mathf.Clamp01(child.digProbability + Random.Range(-0.02f, 0.02f));
+                child.eatProbability = Mathf.Clamp01(child.eatProbability + Random.Range(-0.01f, 0.01f));
+                child.movementSpeedMultiplier = Mathf.Clamp(child.movementSpeedMultiplier + Random.Range(-0.1f, 0.1f), 0.5f, 2f);
+                newPop.Add(child);
+            }
+
+            int bestFitness = 0;
+            foreach (int f in fitnesses) if (f > bestFitness) bestFitness = f;
+
+            population = newPop;
+            fitnesses = new List<int>(new int[population.Count]);
+
+            Debug.Log($"Evolved to next population. Best previous fitness: {bestFitness}");
         }
 
         /// <summary>
         /// Spawn a worker ant at a position.
         /// </summary>
-        private void SpawnWorkerAnt(Vector3Int position)
+        private void SpawnWorkerAnt(Vector3Int position, Ant.BehaviorGenome genome)
         {
             GameObject antObj = Instantiate(WorldManager.Instance.antPrefab, this.transform);
             Ant ant = antObj.GetComponent<Ant>();
             ant.Initialize(position, AntConfiguration.Instance.MaxWorkerHealth);
+            ant.Genome = genome;
         }
 
         /// <summary>
         /// Spawn a queen ant at a position.
         /// </summary>
-        private void SpawnQueenAnt(Vector3Int position)
+        private void SpawnQueenAnt(Vector3Int position, Ant.BehaviorGenome genome)
         {
             GameObject queenObj = Instantiate(WorldManager.Instance.queenAntPrefab, this.transform);
             QueenAnt queen = queenObj.AddComponent<QueenAnt>();
             queen.Initialize(position, AntConfiguration.Instance.MaxQueenHealth);
+            queen.Genome = genome;
         }
 
         /// <summary>
         /// Clear all ants from the simulation.
         /// </summary>
-        private void ClearAllAnts()
+        public void ClearAllAnts()
         {
             foreach (Ant ant in allAnts)
             {
@@ -246,6 +340,32 @@ namespace Antymology.Agents
             allAnts.Clear();
             antPositions.Clear();
             queenAnt = null;
+        }
+
+        /// <summary>
+        /// Spawn an entire colony using the given genome.
+        /// </summary>
+        public void SpawnColonyWithGenome(Ant.BehaviorGenome genome)
+        {
+            totalNestsProduced = 0;
+            Vector3Int spawnCenter = FindSafeSpawnLocation();
+
+            for (int i = 0; i < AntConfiguration.Instance.WorkerAntCount; i++)
+            {
+                Vector3Int spawnPos = FindNearbySpawnPosition(spawnCenter, AntConfiguration.Instance.SpawnRadius);
+                SpawnWorkerAnt(spawnPos, genome);
+            }
+
+            Vector3Int queenSpawnPos = FindNearbySpawnPosition(spawnCenter, 2);
+            SpawnQueenAnt(queenSpawnPos, genome);
+        }
+
+        /// <summary>
+        /// Reset nest counter (used by EvolutionManager between evaluations).
+        /// </summary>
+        public void ResetNestCount()
+        {
+            totalNestsProduced = 0;
         }
 
         #endregion
