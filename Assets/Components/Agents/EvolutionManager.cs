@@ -12,6 +12,9 @@ namespace Antymology.Agents
         public int PopulationSize = 6;
         public int StepsPerEvaluation = 300;
 
+        // Default genome used when a non-evolving fallback is needed or for seeds
+        public static Ant.BehaviorGenome DefaultGenome => new Ant.BehaviorGenome(0.2f, 0.002f, 0.01f);
+
         private List<Ant.BehaviorGenome> population;
         private List<int> fitnesses;
         private int evalIndex = 0;
@@ -79,8 +82,7 @@ namespace Antymology.Agents
                 Ant.BehaviorGenome g = new Ant.BehaviorGenome(
                     Random.Range(0.02f, 0.2f),
                     Random.Range(0.005f, 0.2f),
-                    Random.Range(0.005f, 0.05f),
-                    Random.Range(0.8f, 1.2f)
+                    Random.Range(0.005f, 0.05f)
                 );
                 population.Add(g);
                 fitnesses.Add(0);
@@ -107,9 +109,8 @@ namespace Antymology.Agents
                 Ant.BehaviorGenome parent = population[indices[Random.Range(0, elites)]];
                 Ant.BehaviorGenome child = parent;
                 child.moveProbability = Mathf.Clamp01(child.moveProbability + Random.Range(-0.02f, 0.02f));
-                child.digProbability = Mathf.Clamp01(child.digProbability + Random.Range(-0.02f, 0.02f));
+                child.digProbability = Mathf.Clamp01(child.digProbability + Random.Range(-0.01f, 0.01f));
                 child.eatProbability = Mathf.Clamp01(child.eatProbability + Random.Range(-0.01f, 0.01f));
-                child.movementSpeedMultiplier = Mathf.Clamp(child.movementSpeedMultiplier + Random.Range(-0.1f, 0.1f), 0.5f, 2f);
                 newPop.Add(child);
             }
 

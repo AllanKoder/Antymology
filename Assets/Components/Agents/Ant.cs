@@ -7,19 +7,7 @@ namespace Antymology.Agents
     /// <summary>
     /// Base class for ant agents. Handles health, movement, and basic behaviors.
     /// </summary>
-    public struct BehaviorGenome
-    {
-        public float moveProbability;
-        public float digProbability;
-        public float eatProbability;
 
-        public BehaviorGenome(float moveProb, float digProb, float eatProb, float speedMult)
-        {
-            moveProbability = moveProb;
-            digProbability = digProb;
-            eatProbability = eatProb;
-        }
-    }
 
     public class Ant : MonoBehaviour
     {
@@ -79,6 +67,20 @@ namespace Antymology.Agents
         public virtual bool IsQueen => false;
 
         // Behavior genome controlling probabilities and speed
+        public struct BehaviorGenome
+        {
+            public float moveProbability;
+            public float digProbability;
+            public float eatProbability;
+
+            public BehaviorGenome(float moveProb, float digProb, float eatProb)
+            {
+                moveProbability = moveProb;
+                digProbability = digProb;
+                eatProbability = eatProb;
+            }
+        }
+
         public BehaviorGenome Genome { get; set; }
 
         #endregion
@@ -105,8 +107,8 @@ namespace Antymology.Agents
             transform.position = new Vector3(startPosition.x, startPosition.y, startPosition.z);
             targetWorldPosition = transform.position;
 
-            // Default genome so ants have sane behavior if not set by manager
-            Genome = new BehaviorGenome(0.1f, 0.008f, 0.01f);
+            // Default genome comes from EvolutionManager so defaults are centralized
+            Genome = EvolutionManager.DefaultGenome;
 
             // Register with manager
             AntManager.Instance.RegisterAnt(this);
@@ -242,7 +244,8 @@ namespace Antymology.Agents
             {
                 // If there's diggable material beneath, attempt to dig with genome probability
                 AbstractBlock blockBelow = WorldManager.Instance.GetBlock(worldPosition.x, worldPosition.y - 1, worldPosition.z);
-                if (!isMoving && blockBelow != null && !(blockBelow is ContainerBlock) && !(blockBelow is AirBlock) && Random.value < Genome.digProbability)
+                bool validBlock = blockBelow != null && !(blockBelow is ContainerBlock) && !(blockBelow is AirBlock);
+                if (!isMoving && validBlock && Random.value < Genome.digProbability)
                 {
                     TryDig();
                 }
