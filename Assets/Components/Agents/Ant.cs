@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 using Antymology.Terrain;
 
 namespace Antymology.Agents
@@ -9,6 +10,8 @@ namespace Antymology.Agents
     public class Ant : MonoBehaviour
     {
         #region Fields
+
+        public Slider healthSlider;
 
         /// <summary>
         /// Current health of the ant.
@@ -87,19 +90,21 @@ namespace Antymology.Agents
         /// </summary>
         protected virtual void Update()
         {
+            healthSlider.value = Health / MaxHealth;
             if (!isAlive) return;
 
             // Handle smooth movement interpolation
             if (isMoving)
             {
+                Vector3 visualTargetPosition = targetWorldPosition + Vector3.down * 0.5f;
                 movementProgress += Time.deltaTime * AntConfiguration.Instance.MovementSpeed;
-                transform.position = Vector3.Lerp(transform.position, targetWorldPosition, movementProgress);
+                transform.position = Vector3.Lerp(transform.position, visualTargetPosition, movementProgress);
 
                 if (movementProgress >= 1f)
                 {
                     isMoving = false;
                     movementProgress = 0f;
-                    transform.position = targetWorldPosition;
+                    transform.position = visualTargetPosition;
                 }
             }
         }
@@ -204,11 +209,8 @@ namespace Antymology.Agents
                 TryMove(randomDir);
             }
 
-            // Try to eat if on mulch and low health
-            if (health < maxHealth * 0.5f)
-            {
-                TryEat();
-            }
+            // Try to eat if on mulch and low 
+            TryEat();
         }
 
         /// <summary>
@@ -275,6 +277,23 @@ namespace Antymology.Agents
                 // Consume mulch
                 AddHealth(AntConfiguration.Instance.MulchHealthRestore);
                 WorldManager.Instance.SetBlock(worldPosition.x, worldPosition.y - 1, worldPosition.z, new AirBlock());
+
+                // If support was removed, drop the ant down until it reaches solid ground.
+                while (worldPosition.y > 0 && !WorldManager.Instance.GetBlock(worldPosition.x, worldPosition.y - 1, worldPosition.z).isVisible())
+                {
+                    Vector3Int oldPos = worldPosition;
+                    Vector3Int newPos = new Vector3Int(worldPosition.x, worldPosition.y - 1, worldPosition.z);
+                    // Update manager tracking and teleport the ant to the new position
+                    AntManager.Instance.UpdateAntPosition(this, oldPos, newPos);
+                    worldPosition = newPos;
+                    targetWorldPosition = new Vector3(newPos.x, newPos.y, newPos.z);
+                    transform.position = targetWorldPosition;
+                }
+
+                // Ensure movement interpolation does not override the teleport; stop any active movement
+                isMoving = false;
+                movementProgress = 0f;
+
                 return true;
             }
 

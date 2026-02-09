@@ -400,7 +400,7 @@ namespace Antymology.Terrain
 
             if (updateZ - 1 >= 0)
                 Chunks[updateX, updateY, updateZ - 1].updateNeeded = true;
-            if (updateX + 1 < Chunks.GetLength(2))
+            if (updateZ + 1 < Chunks.GetLength(2))
                 Chunks[updateX, updateY, updateZ + 1].updateNeeded = true;
         }
 

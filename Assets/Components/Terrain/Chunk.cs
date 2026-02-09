@@ -123,7 +123,12 @@ namespace Antymology.Terrain
             // Optimize, and normal calculation
             MeshUtility.Optimize(mesh);
             mesh.RecalculateNormals();
-            collider.sharedMesh = mesh;
+
+            // Only assign a collider mesh if we actually have geometry; otherwise clear it to avoid warnings
+            if (vertices.Count > 0)
+                collider.sharedMesh = mesh;
+            else
+                collider.sharedMesh = null;
         }
 
         #endregion
