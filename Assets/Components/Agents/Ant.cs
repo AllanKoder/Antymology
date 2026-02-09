@@ -305,6 +305,9 @@ namespace Antymology.Agents
                     AntManager.Instance.UpdateAntPosition(this, oldPos, newPos);
                     worldPosition = newPos;
                     targetWorldPosition = new Vector3(newPos.x, newPos.y, newPos.z);
+                   
+                    // Immediately move the visual transform to the new position
+                    transform.position = targetWorldPosition;
                 }
 
                 // Ensure movement interpolation does not override the teleport; stop any active movement
