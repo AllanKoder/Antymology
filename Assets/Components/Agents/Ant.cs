@@ -11,7 +11,8 @@ namespace Antymology.Agents
     {
         #region Fields
 
-        public Slider healthSlider;
+        // UI for the health bar
+        protected Slider healthSlider;
 
         /// <summary>
         /// Current health of the ant.
@@ -32,6 +33,11 @@ namespace Antymology.Agents
         /// Target position for movement interpolation.
         /// </summary>
         protected Vector3 targetWorldPosition;
+
+        /// <summary>
+        /// Last horizontal direction the ant moved (used for facing)
+        /// </summary>
+        protected Vector3 lastMoveDirection = Vector3.forward;
 
         /// <summary>
         /// Is the ant currently moving?
@@ -61,6 +67,11 @@ namespace Antymology.Agents
         #endregion
 
         #region Initialization
+
+        public void Awake()
+        {
+            healthSlider = GetComponentInChildren<Slider>();
+        }
 
         /// <summary>
         /// Initialize the ant with a starting position and health.
@@ -209,8 +220,17 @@ namespace Antymology.Agents
             }
             else
             {
-                // Try to eat if on mulch and low 
-                TryEat();
+                // If there's diggable material beneath, attempt to dig with some probability
+                AbstractBlock blockBelow = WorldManager.Instance.GetBlock(worldPosition.x, worldPosition.y - 1, worldPosition.z);
+                if (!isMoving && blockBelow != null && !(blockBelow is ContainerBlock) && !(blockBelow is AirBlock) && Random.value < 0.008f)
+                {
+                    TryDig();
+                }
+                else if (Random.value < 0.01f)
+                {
+                    // Try to eat if on mulch and low
+                    TryEat();
+                }
             }
         }
 
@@ -270,6 +290,12 @@ namespace Antymology.Agents
             AntManager.Instance.UpdateAntPosition(this, worldPosition, targetPos);
             worldPosition = targetPos;
             targetWorldPosition = new Vector3(targetPos.x, targetPos.y, targetPos.z);
+            // record movement direction for facing (horizontal only)
+            lastMoveDirection = new Vector3(dx, 0, dz);
+            if (lastMoveDirection.sqrMagnitude > float.Epsilon)
+            {
+                transform.rotation = Quaternion.LookRotation(lastMoveDirection);
+            }
             isMoving = true;
             movementProgress = 0f;
 
@@ -297,22 +323,7 @@ namespace Antymology.Agents
                 WorldManager.Instance.SetBlock(worldPosition.x, worldPosition.y - 1, worldPosition.z, new AirBlock());
 
                 // If support was removed, drop the ant down until it reaches solid ground.
-                while (worldPosition.y > 0 && !WorldManager.Instance.GetBlock(worldPosition.x, worldPosition.y - 1, worldPosition.z).isVisible())
-                {
-                    Vector3Int oldPos = worldPosition;
-                    Vector3Int newPos = new Vector3Int(worldPosition.x, worldPosition.y - 1, worldPosition.z);
-                    // Update manager tracking and teleport the ant to the new position
-                    AntManager.Instance.UpdateAntPosition(this, oldPos, newPos);
-                    worldPosition = newPos;
-                    targetWorldPosition = new Vector3(newPos.x, newPos.y, newPos.z);
-                   
-                    // Immediately move the visual transform to the new position
-                    transform.position = targetWorldPosition;
-                }
-
-                // Ensure movement interpolation does not override the teleport; stop any active movement
-                isMoving = false;
-                movementProgress = 0f;
+                DropToGround();
 
                 return true;
             }
@@ -333,12 +344,37 @@ namespace Antymology.Agents
                 return false;
             }
 
-            // Dig the block
+            // Dig the block (remove it)
             WorldManager.Instance.SetBlock(worldPosition.x, worldPosition.y - 1, worldPosition.z, new AirBlock());
+
+            // After digging, drop the ant down until it reaches solid ground.
+            DropToGround();
+
             return true;
         }
 
         #endregion
+
+        /// <summary>
+        /// Drop vertically until the ant reaches solid ground beneath it.
+        /// Updates manager tracking and visual transform.
+        /// </summary>
+        protected void DropToGround()
+        {
+            while (worldPosition.y > 0 && !WorldManager.Instance.GetBlock(worldPosition.x, worldPosition.y - 1, worldPosition.z).isVisible())
+            {
+                Vector3Int oldPos = worldPosition;
+                Vector3Int newPos = new Vector3Int(worldPosition.x, worldPosition.y - 1, worldPosition.z);
+                AntManager.Instance.UpdateAntPosition(this, oldPos, newPos);
+                worldPosition = newPos;
+                targetWorldPosition = new Vector3(newPos.x, newPos.y, newPos.z);
+                transform.position = targetWorldPosition;
+            }
+
+            // Ensure movement interpolation does not override the teleport; stop any active movement
+            isMoving = false;
+            movementProgress = 0f;
+        }
 
         #region Helpers
 
