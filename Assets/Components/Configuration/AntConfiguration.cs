@@ -29,6 +29,9 @@ public class AntConfiguration : Singleton<AntConfiguration>
     [Tooltip("Movement speed (blocks per second)")]
     public float MovementSpeed = 2f;
 
+    [Tooltip("Simulation Timestep")]
+    public float timestepDuration = 0.1f;
+
     [Header("Queen Settings")]
     [Tooltip("Health cost for queen to produce one nest block (as fraction of max health)")]
     [Range(0f, 1f)]
