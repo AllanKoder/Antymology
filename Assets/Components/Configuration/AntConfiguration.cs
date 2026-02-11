@@ -37,6 +37,11 @@ public class AntConfiguration : Singleton<AntConfiguration>
     [Range(0f, 1f)]
     public float NestProductionHealthCost = 0.33f;
 
+    [Header("Building Settings")]
+    [Tooltip("Health cost for Ant to produce one container for building (as fraction of max health)")]
+    [Range(0f, 1f)]
+    public float ContainerProductionHealthCost = 0.10f;
+
     [Header("Spawn Settings")]
     [Tooltip("Spawn ants at this Y level or higher")]
     public int SpawnYLevel = 20;

@@ -57,6 +57,7 @@ namespace Antymology.Agents
         protected float movementProgress = 0f;
         protected int digCooldownRemaining = 0;
         protected int eatCooldownRemaining = 0;
+        protected int buildCooldownRemaining = 0;
 
         #endregion
 
@@ -74,21 +75,25 @@ namespace Antymology.Agents
             public float moveProbability;
             public float digProbability;
             public float eatProbability;
+            public float buildProbability;
             public int ticksBetweenDigs;
             public int ticksBetweenEats;
+            public int ticksBetweenBuilds;
 
-            public BehaviorGenome(float moveProb, float digProb, float eatProb, int ticksBetweenDigs = 3, int ticksBetweenEats = 3)
+            public BehaviorGenome(float moveProb, float digProb, float eatProb, float buildProb = 0f, int ticksBetweenDigs = 3, int ticksBetweenEats = 3, int ticksBetweenBuilds = 8)
             {
                 this.moveProbability = moveProb;
                 this.digProbability = digProb;
                 this.eatProbability = eatProb;
+                this.buildProbability = buildProb;
                 this.ticksBetweenDigs = ticksBetweenDigs;
                 this.ticksBetweenEats = ticksBetweenEats;
+                this.ticksBetweenBuilds = ticksBetweenBuilds;
             }
 
             public override string ToString()
             {
-                return $"move:{moveProbability:F2} dig:{digProbability:F2} eat:{eatProbability:F2} digs:({ticksBetweenDigs}) eats:({ticksBetweenEats})";
+                return $"move:{moveProbability:F2} dig:{digProbability:F2} eat:{eatProbability:F2} build:{buildProbability:F2} digs:({ticksBetweenDigs}) eats:({ticksBetweenEats}) builds:({ticksBetweenBuilds})";
             }
         }
 
@@ -167,6 +172,7 @@ namespace Antymology.Agents
             // Decrement any action cooldowns
             if (digCooldownRemaining > 0) digCooldownRemaining--;
             if (eatCooldownRemaining > 0) eatCooldownRemaining--;
+            if (buildCooldownRemaining > 0) buildCooldownRemaining--;
 
             // Make decisions and perform actions
             MakeDecision();
@@ -269,6 +275,11 @@ namespace Antymology.Agents
                 {
                     // Try to eat if on mulch and low; set cooldown when successful
                     if (TryEat()) eatCooldownRemaining = Genome.ticksBetweenEats;
+                }
+                // Attempt to build at current position (place ContainerBlock at current y, then move up)
+                else if (!isMoving && Genome.buildProbability > 0f && Random.value < Genome.buildProbability && buildCooldownRemaining <= 0)
+                {
+                    TryBuildUp();
                 }
             }
         }
@@ -404,6 +415,50 @@ namespace Antymology.Agents
 
             // After digging, drop the ant down until it reaches solid ground.
             DropToGround();
+
+            return true;
+        }
+
+        /// <summary>
+        /// Attempt to build a container block at the ant's current position and move up onto it.
+        /// </summary>
+        protected bool TryBuildUp()
+        {
+            int x = worldPosition.x;
+            int y = worldPosition.y;
+            int z = worldPosition.z;
+
+            // Can't build if at top of world
+            int maxY = ConfigurationManager.Instance.World_Height * ConfigurationManager.Instance.Chunk_Diameter;
+            if (y + 1 >= maxY) return false;
+
+            // Current space must be free (air) to place a block there
+            AbstractBlock currentBlock = WorldManager.Instance.GetBlock(x, y, z);
+            if (!(currentBlock is AirBlock)) return false;
+
+            // Target space above must be free for the ant to occupy after building
+            AbstractBlock aboveBlock = WorldManager.Instance.GetBlock(x, y + 1, z);
+            if (!(aboveBlock is AirBlock)) return false;
+
+            // Health cost (use same fraction as nest production)
+            float healthCost = maxHealth * AntConfiguration.Instance.ContainerProductionHealthCost;
+            if (health - healthCost <= 0f) return false; // won't build if it would kill the ant
+
+            // Place container block at current position
+            WorldManager.Instance.SetBlock(x, y, z, new ContainerBlock());
+
+            // Deduct health and set cooldown
+            RemoveHealth(healthCost);
+            buildCooldownRemaining = Genome.ticksBetweenBuilds;
+
+            // Move the ant up one block
+            Vector3Int oldPos = worldPosition;
+            Vector3Int newPos = new Vector3Int(x, y + 1, z);
+            AntManager.Instance.UpdateAntPosition(this, oldPos, newPos);
+            worldPosition = newPos;
+            targetWorldPosition = new Vector3(newPos.x, newPos.y, newPos.z);
+            isMoving = true;
+            movementProgress = 0f;
 
             return true;
         }

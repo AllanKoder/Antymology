@@ -166,15 +166,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fade7e597b5ccd3489aa1e0a707489ad, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AntConfiguration
-  WorkerAntCount: 100
+  WorkerAntCount: 50
   MaxWorkerHealth: 100
   MaxQueenHealth: 150
   HealthDecayRate: 5
-  MulchHealthRestore: 30
+  MulchHealthRestore: 50
   MaxHeightDifference: 2
   MovementSpeed: 2
   timestepDuration: 0.01
   NestProductionHealthCost: 0.33
+  ContainerProductionHealthCost: 0.1
   SpawnYLevel: 20
   SpawnRadius: 60
 --- !u!114 &224247816
@@ -468,7 +469,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Antymology.Agents.EvolutionManager
   PopulationSize: 6
-  StepsPerEvaluation: 500
+  StepsPerEvaluation: 2000
 --- !u!1 &882281227
 GameObject:
   m_ObjectHideFlags: 0
