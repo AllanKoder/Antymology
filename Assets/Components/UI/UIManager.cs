@@ -14,6 +14,12 @@ namespace Antymology.UI
         public TMP_Text generationText;
         public TMP_Text aliveText;
         public TMP_Text bestGenomeText;
+        private GameObject mainCameraObject;
+
+        void Awake()
+        {
+            mainCameraObject = (Camera.main != null) ? Camera.main.gameObject : null;
+        }
 
         void Update()
         {
@@ -35,6 +41,26 @@ namespace Antymology.UI
                 else
                 {
                     bestGenomeText.text = "Best Genome: N/A";
+                }
+            }
+
+            // Toggle fast mode with F key: disables main camera and speeds up simulation
+            if (Input.GetKeyDown(KeyCode.F))
+            {
+                Antymology.Simulation.SimulationSettings.FastMode = !Antymology.Simulation.SimulationSettings.FastMode;
+                // Use stored camera object so toggling back works even if Camera.main becomes null when disabled
+                if (mainCameraObject != null)
+                {
+                    mainCameraObject.SetActive(!Antymology.Simulation.SimulationSettings.FastMode);
+                }
+                else
+                {
+                    var cam = Camera.main;
+                    if (cam != null)
+                    {
+                        mainCameraObject = cam.gameObject;
+                        mainCameraObject.SetActive(!Antymology.Simulation.SimulationSettings.FastMode);
+                    }
                 }
             }
         }

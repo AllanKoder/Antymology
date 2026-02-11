@@ -72,6 +72,9 @@ namespace Antymology.Terrain
                 ConfigurationManager.Instance.World_Diameter,
                 ConfigurationManager.Instance.World_Height,
                 ConfigurationManager.Instance.World_Diameter];
+
+            // placeholder for an initial snapshot used by Evolution to reset environment between evaluations
+            initialBlocks = null;
         }
 
         /// <summary>
@@ -80,6 +83,8 @@ namespace Antymology.Terrain
         private void Start()
         {
             GenerateData();
+            // Save an initial snapshot of the generated world so evolution evaluations can restore to a fair environment
+            SaveInitialWorldSnapshot();
             GenerateChunks();
 
             Camera.main.transform.position = new Vector3(0 / 2, Blocks.GetLength(1), 0);
@@ -99,6 +104,49 @@ namespace Antymology.Terrain
         #endregion
 
         #region Methods
+
+        private AbstractBlock[,,] initialBlocks;
+
+        /// <summary>
+        /// Save a deep copy snapshot of the initially generated world. Used to restore environment between evaluations.
+        /// </summary>
+        private void SaveInitialWorldSnapshot()
+        {
+            initialBlocks = new AbstractBlock[Blocks.GetLength(0), Blocks.GetLength(1), Blocks.GetLength(2)];
+            for (int x = 0; x < Blocks.GetLength(0); x++)
+                for (int y = 0; y < Blocks.GetLength(1); y++)
+                    for (int z = 0; z < Blocks.GetLength(2); z++)
+                        initialBlocks[x, y, z] = CloneBlock(Blocks[x, y, z]);
+        }
+
+        /// <summary>
+        /// Restore the world to the saved initial snapshot. Marks all chunks for update.
+        /// </summary>
+        public void RestoreInitialWorld()
+        {
+            if (initialBlocks == null) return;
+            for (int x = 0; x < Blocks.GetLength(0); x++)
+                for (int y = 0; y < Blocks.GetLength(1); y++)
+                    for (int z = 0; z < Blocks.GetLength(2); z++)
+                        Blocks[x, y, z] = CloneBlock(initialBlocks[x, y, z]);
+
+            // mark every chunk as needing generation
+            for (int cx = 0; cx < Chunks.GetLength(0); cx++)
+                for (int cy = 0; cy < Chunks.GetLength(1); cy++)
+                    for (int cz = 0; cz < Chunks.GetLength(2); cz++)
+                        Chunks[cx, cy, cz].updateNeeded = true;
+        }
+
+        private AbstractBlock CloneBlock(AbstractBlock b)
+        {
+            if (b == null) return new AirBlock();
+            if (b is MulchBlock) return new MulchBlock();
+            if (b is StoneBlock) return new StoneBlock();
+            if (b is GrassBlock) return new GrassBlock();
+            if (b is AcidicBlock) return new AcidicBlock();
+            if (b is ContainerBlock) return new ContainerBlock();
+            return new AirBlock();
+        }
 
         /// <summary>
         /// Retrieves an abstract block type at the desired world coordinates.
@@ -126,29 +174,10 @@ namespace Antymology.Terrain
             int ChunkXCoordinate, int ChunkYCoordinate, int ChunkZCoordinate,
             int LocalXCoordinate, int LocalYCoordinate, int LocalZCoordinate)
         {
-            if
-            (
-                LocalXCoordinate < 0 ||
-                LocalYCoordinate < 0 ||
-                LocalZCoordinate < 0 ||
-                LocalXCoordinate >= Blocks.GetLength(0) ||
-                LocalYCoordinate >= Blocks.GetLength(1) ||
-                LocalZCoordinate >= Blocks.GetLength(2) ||
-                ChunkXCoordinate < 0 ||
-                ChunkYCoordinate < 0 ||
-                ChunkZCoordinate < 0 ||
-                ChunkXCoordinate >= Blocks.GetLength(0) ||
-                ChunkYCoordinate >= Blocks.GetLength(1) ||
-                ChunkZCoordinate >= Blocks.GetLength(2) 
-            )
-                return new AirBlock();
-
-            return Blocks
-            [
-                ChunkXCoordinate * LocalXCoordinate,
-                ChunkYCoordinate * LocalYCoordinate,
-                ChunkZCoordinate * LocalZCoordinate
-            ];
+            int WorldX = (ChunkXCoordinate * ConfigurationManager.Instance.Chunk_Diameter) + LocalXCoordinate;
+            int WorldY = (ChunkYCoordinate * ConfigurationManager.Instance.Chunk_Diameter) + LocalYCoordinate;
+            int WorldZ = (ChunkZCoordinate * ConfigurationManager.Instance.Chunk_Diameter) + LocalZCoordinate;
+            return GetBlock(WorldX, WorldY, WorldZ);
         }
 
         /// <summary>
@@ -161,9 +190,9 @@ namespace Antymology.Terrain
                 WorldXCoordinate < 0 ||
                 WorldYCoordinate < 0 ||
                 WorldZCoordinate < 0 ||
-                WorldXCoordinate > Blocks.GetLength(0) ||
-                WorldYCoordinate > Blocks.GetLength(1) ||
-                WorldZCoordinate > Blocks.GetLength(2)
+                WorldXCoordinate >= Blocks.GetLength(0) ||
+                WorldYCoordinate >= Blocks.GetLength(1) ||
+                WorldZCoordinate >= Blocks.GetLength(2)
             )
             {
                 Debug.Log("Attempted to set a block which didn't exist");
@@ -188,38 +217,10 @@ namespace Antymology.Terrain
             int LocalXCoordinate, int LocalYCoordinate, int LocalZCoordinate,
             AbstractBlock toSet)
         {
-            if
-            (
-                LocalXCoordinate < 0 ||
-                LocalYCoordinate < 0 ||
-                LocalZCoordinate < 0 ||
-                LocalXCoordinate > Blocks.GetLength(0) ||
-                LocalYCoordinate > Blocks.GetLength(1) ||
-                LocalZCoordinate > Blocks.GetLength(2) ||
-                ChunkXCoordinate < 0 ||
-                ChunkYCoordinate < 0 ||
-                ChunkZCoordinate < 0 ||
-                ChunkXCoordinate > Blocks.GetLength(0) ||
-                ChunkYCoordinate > Blocks.GetLength(1) ||
-                ChunkZCoordinate > Blocks.GetLength(2)
-            )
-            {
-                Debug.Log("Attempted to set a block which didn't exist");
-                return;
-            }
-            Blocks
-            [
-                ChunkXCoordinate * LocalXCoordinate,
-                ChunkYCoordinate * LocalYCoordinate,
-                ChunkZCoordinate * LocalZCoordinate
-            ] = toSet;
-
-            SetChunkContainingBlockToUpdate
-            (
-                ChunkXCoordinate * LocalXCoordinate,
-                ChunkYCoordinate * LocalYCoordinate,
-                ChunkZCoordinate * LocalZCoordinate
-            );
+            int WorldX = (ChunkXCoordinate * ConfigurationManager.Instance.Chunk_Diameter) + LocalXCoordinate;
+            int WorldY = (ChunkYCoordinate * ConfigurationManager.Instance.Chunk_Diameter) + LocalYCoordinate;
+            int WorldZ = (ChunkZCoordinate * ConfigurationManager.Instance.Chunk_Diameter) + LocalZCoordinate;
+            SetBlock(WorldX, WorldY, WorldZ, toSet);
         }
 
         #endregion

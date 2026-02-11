@@ -57,7 +57,8 @@ namespace Antymology.Agents
         private void Update()
         {
             // Accumulate time for discrete simulation updates
-            timestepAccumulator += Time.deltaTime;
+            float dt = Time.deltaTime * (Antymology.Simulation.SimulationSettings.FastMode ? Antymology.Simulation.SimulationSettings.TimeScaleMultiplier : 1f);
+            timestepAccumulator += dt;
 
             if (timestepAccumulator >= AntConfiguration.Instance.timestepDuration)
             {

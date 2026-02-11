@@ -66,6 +66,12 @@ namespace Antymology.Agents
         private void StartEvaluationGenome(int index)
         {
             if (population == null || index < 0 || index >= population.Count) return;
+            // Restore fair environment (regenerate mulch/blocks to initial snapshot)
+            if (Antymology.Terrain.WorldManager.Instance != null)
+            {
+                Antymology.Terrain.WorldManager.Instance.RestoreInitialWorld();
+            }
+
             // Ask AntManager to spawn a colony configured with this genome
             AntManager.Instance.ClearAllAnts();
             AntManager.Instance.SpawnColonyWithGenome(population[index]);
