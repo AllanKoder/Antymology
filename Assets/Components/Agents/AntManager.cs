@@ -60,7 +60,7 @@ namespace Antymology.Agents
             float dt = Time.deltaTime * (Antymology.Simulation.SimulationSettings.FastMode ? Antymology.Simulation.SimulationSettings.TimeScaleMultiplier : 1f);
             timestepAccumulator += dt;
 
-            if (timestepAccumulator >= AntConfiguration.Instance.timestepDuration)
+            while (timestepAccumulator >= AntConfiguration.Instance.timestepDuration)
             {
                 timestepAccumulator -= AntConfiguration.Instance.timestepDuration;
                 SimulationUpdate();
@@ -386,5 +386,13 @@ namespace Antymology.Agents
         }
 
         #endregion
+
+        /// <summary>
+        /// Returns a copy of the internal list of all ants (for UI/inspection purposes).
+        /// </summary>
+        public List<Ant> GetAllAnts()
+        {
+            return new List<Ant>(allAnts);
+        }
     }
 }

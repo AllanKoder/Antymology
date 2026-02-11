@@ -141,7 +141,8 @@ namespace Antymology.Agents
             if (isMoving)
             {
                 Vector3 visualTargetPosition = targetWorldPosition + Vector3.down * 0.5f;
-                movementProgress += Time.deltaTime * AntConfiguration.Instance.MovementSpeed;
+                // Scale visual interpolation by fast-mode multiplier so visuals keep up with accelerated simulation timesteps
+                movementProgress += Time.deltaTime * AntConfiguration.Instance.MovementSpeed * (Antymology.Simulation.SimulationSettings.FastMode ? Antymology.Simulation.SimulationSettings.TimeScaleMultiplier : 1f);
                 transform.position = Vector3.Lerp(transform.position, visualTargetPosition, movementProgress);
 
                 if (movementProgress >= 1f)

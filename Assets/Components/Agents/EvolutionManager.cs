@@ -42,9 +42,27 @@ namespace Antymology.Agents
         public void Tick()
         {
             if (!isEvolving) return;
+            // Ensure population/fitness lists are valid
+            if (population == null || population.Count == 0)
+            {
+                isEvolving = false;
+                return;
+            }
+            if (fitnesses == null || fitnesses.Count != population.Count)
+            {
+                fitnesses = new System.Collections.Generic.List<int>(new int[population.Count]);
+            }
+
             evalStepsRemaining--;
             if (evalStepsRemaining <= 0)
             {
+                // guard index
+                if (evalIndex < 0 || evalIndex >= fitnesses.Count)
+                {
+                    Debug.LogWarning($"EvolutionManager.Tick: evalIndex {evalIndex} out of range (0..{fitnesses.Count - 1}), resetting to 0");
+                    evalIndex = 0;
+                }
+
                 // record fitness from AntManager
                 fitnesses[evalIndex] = AntManager.Instance.TotalNestsProduced;
 

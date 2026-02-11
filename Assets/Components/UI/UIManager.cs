@@ -15,6 +15,8 @@ namespace Antymology.UI
         public TMP_Text aliveText;
         public TMP_Text bestGenomeText;
         private GameObject mainCameraObject;
+        // Track currently highlighted ant in the scene
+        private Ant highlightedAnt = null;
 
         void Awake()
         {
@@ -33,15 +35,14 @@ namespace Antymology.UI
 
             if (bestGenomeText != null)
             {
+                string evolvedText = "Best Genome (evolved): N/A";
                 if (EvolutionManager.Instance != null)
                 {
                     var bg = EvolutionManager.Instance.BestGenome;
-                    bestGenomeText.text = "Best Genome:\n" + bg.ToString();
+                    evolvedText = "Best Genome (evolved):\n" + bg.ToString();
                 }
-                else
-                {
-                    bestGenomeText.text = "Best Genome: N/A";
-                }
+
+                bestGenomeText.text = evolvedText;
             }
 
             // Toggle fast mode with F key: disables main camera and speeds up simulation
