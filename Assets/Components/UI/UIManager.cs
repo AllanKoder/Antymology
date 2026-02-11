@@ -51,7 +51,11 @@ namespace Antymology.UI
                 // Use stored camera object so toggling back works even if Camera.main becomes null when disabled
                 if (mainCameraObject != null)
                 {
-                    mainCameraObject.SetActive(!Antymology.Simulation.SimulationSettings.FastMode);
+                    var camComp = mainCameraObject.GetComponent<Camera>();
+                    if (camComp != null)
+                        camComp.enabled = !Antymology.Simulation.SimulationSettings.FastMode;
+                    else
+                        mainCameraObject.SetActive(!Antymology.Simulation.SimulationSettings.FastMode);
                 }
                 else
                 {
@@ -59,7 +63,11 @@ namespace Antymology.UI
                     if (cam != null)
                     {
                         mainCameraObject = cam.gameObject;
-                        mainCameraObject.SetActive(!Antymology.Simulation.SimulationSettings.FastMode);
+                        var camComp = mainCameraObject.GetComponent<Camera>();
+                        if (camComp != null)
+                            camComp.enabled = !Antymology.Simulation.SimulationSettings.FastMode;
+                        else
+                            mainCameraObject.SetActive(!Antymology.Simulation.SimulationSettings.FastMode);
                     }
                 }
             }

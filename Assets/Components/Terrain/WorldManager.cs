@@ -153,6 +153,10 @@ namespace Antymology.Terrain
         /// </summary>
         public AbstractBlock GetBlock(int WorldXCoordinate, int WorldYCoordinate, int WorldZCoordinate)
         {
+            // If world data hasn't been initialized yet, treat as empty space
+            if (Blocks == null)
+                return new AirBlock();
+
             if
             (
                 WorldXCoordinate < 0 ||
