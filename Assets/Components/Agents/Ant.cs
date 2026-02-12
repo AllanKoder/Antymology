@@ -76,24 +76,28 @@ namespace Antymology.Agents
             public float digProbability;
             public float eatProbability;
             public float buildProbability;
+            public float queenBuildProbability;
             public int ticksBetweenDigs;
             public int ticksBetweenEats;
             public int ticksBetweenBuilds;
+            public int ticksBetweenQueenBuilds;
 
-            public BehaviorGenome(float moveProb, float digProb, float eatProb, float buildProb = 0f, int ticksBetweenDigs = 3, int ticksBetweenEats = 3, int ticksBetweenBuilds = 8)
+            public BehaviorGenome(float moveProb, float digProb, float eatProb, float buildProb = 0f, float queenBuildProb = 0f, int ticksBetweenDigs = 3, int ticksBetweenEats = 3, int ticksBetweenBuilds = 8, int ticksBetweenQueenBuilds = 20)
             {
                 this.moveProbability = moveProb;
                 this.digProbability = digProb;
                 this.eatProbability = eatProb;
                 this.buildProbability = buildProb;
+                this.queenBuildProbability = queenBuildProb;
                 this.ticksBetweenDigs = ticksBetweenDigs;
                 this.ticksBetweenEats = ticksBetweenEats;
                 this.ticksBetweenBuilds = ticksBetweenBuilds;
+                this.ticksBetweenQueenBuilds = ticksBetweenQueenBuilds;
             }
 
             public override string ToString()
             {
-                return $"move:{moveProbability:F2} dig:{digProbability:F2} eat:{eatProbability:F2} build:{buildProbability:F2} digs:({ticksBetweenDigs}) eats:({ticksBetweenEats}) builds:({ticksBetweenBuilds})";
+                return $"move:{moveProbability:F2} dig:{digProbability:F2} eat:{eatProbability:F2} build:{buildProbability:F2} queenBuild:{queenBuildProbability:F2} digs:({ticksBetweenDigs}) eats:({ticksBetweenEats}) builds:({ticksBetweenBuilds}) qbuilds:({ticksBetweenQueenBuilds})";
             }
         }
 
