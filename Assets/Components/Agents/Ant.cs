@@ -77,18 +77,20 @@ namespace Antymology.Agents
             public float eatProbability;
             public float buildProbability;
             public float queenBuildProbability;
+            public float shareHealthProbability;
             public int ticksBetweenDigs;
             public int ticksBetweenEats;
             public int ticksBetweenBuilds;
             public int ticksBetweenQueenBuilds;
 
-            public BehaviorGenome(float moveProb, float digProb, float eatProb, float buildProb = 0f, float queenBuildProb = 0f, int ticksBetweenDigs = 3, int ticksBetweenEats = 3, int ticksBetweenBuilds = 8, int ticksBetweenQueenBuilds = 20)
+            public BehaviorGenome(float moveProb, float digProb, float eatProb, float buildProb = 0f, float queenBuildProb = 0f, float shareHealthProb = 0f, int ticksBetweenDigs = 3, int ticksBetweenEats = 3, int ticksBetweenBuilds = 8, int ticksBetweenQueenBuilds = 20)
             {
                 this.moveProbability = moveProb;
                 this.digProbability = digProb;
                 this.eatProbability = eatProb;
                 this.buildProbability = buildProb;
                 this.queenBuildProbability = queenBuildProb;
+                this.shareHealthProbability = shareHealthProb;
                 this.ticksBetweenDigs = ticksBetweenDigs;
                 this.ticksBetweenEats = ticksBetweenEats;
                 this.ticksBetweenBuilds = ticksBetweenBuilds;
@@ -97,7 +99,7 @@ namespace Antymology.Agents
 
             public override string ToString()
             {
-                return $"move:{moveProbability:F2} dig:{digProbability:F2} eat:{eatProbability:F2} build:{buildProbability:F2} queenBuild:{queenBuildProbability:F2} digs:({ticksBetweenDigs}) eats:({ticksBetweenEats}) builds:({ticksBetweenBuilds}) qbuilds:({ticksBetweenQueenBuilds})";
+                return $"move:{moveProbability:F2} dig:{digProbability:F2} eat:{eatProbability:F2} build:{buildProbability:F2} queenBuild:{queenBuildProbability:F2} share:{shareHealthProbability:F2} digs:({ticksBetweenDigs}) eats:({ticksBetweenEats}) builds:({ticksBetweenBuilds}) qbuilds:({ticksBetweenQueenBuilds})";
             }
         }
 
@@ -251,6 +253,41 @@ namespace Antymology.Agents
         /// </summary>
         protected virtual void MakeDecision()
         {
+            // Attempt to share health with another ant on the same tile based on genome chance
+            var antsHere = AntManager.Instance.GetAntsAtPosition(worldPosition);
+            if (antsHere.Count > 1 && Random.value < Genome.shareHealthProbability)
+            {
+                Ant recipient = null;
+                float lowestHealth = float.MaxValue;
+                foreach (var a in antsHere)
+                {
+                    if (a == this) continue;
+                    if (!a.IsAlive) continue;
+                    if (a.Health >= a.MaxHealth) continue;
+                    if (a.Health < lowestHealth)
+                    {
+                        lowestHealth = a.Health;
+                        recipient = a;
+                    }
+                }
+
+                if (recipient != null && this.health > 0f)
+                {
+                    // Attempt to give half of this ant's current health (but not more than recipient can accept)
+                    float desiredGive = this.health * 0.5f;
+                    float space = recipient.MaxHealth - recipient.Health;
+                    float amount = Mathf.Min(desiredGive, space);
+                    // Ensure we don't give so much that the donor dies
+                    amount = Mathf.Min(amount, this.health - 0.001f);
+                    if (amount > 0f)
+                    {
+                        ShareHealthWith(recipient, amount);
+                        // After sharing, skip other actions this tick
+                        return;
+                    }
+                }
+            }
+
             // Base implementation: random walk controlled by genome
             if (!isMoving && Random.value < Genome.moveProbability)
             {

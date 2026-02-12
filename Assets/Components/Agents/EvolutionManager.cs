@@ -13,7 +13,7 @@ namespace Antymology.Agents
         public int StepsPerEvaluation = 300;
 
         // Default genome used when a non-evolving fallback is needed or for seeds
-        public static Ant.BehaviorGenome DefaultGenome => new Ant.BehaviorGenome(0.2f, 0.01f, 0.01f, 0.02f, 0.01f, 25, 25, 8, 20);
+        public static Ant.BehaviorGenome DefaultGenome => new Ant.BehaviorGenome(0.2f, 0.01f, 0.01f, 0.02f, 0.01f, 0.01f, 25, 25, 8, 20);
 
         private List<Ant.BehaviorGenome> population;
         private List<int> fitnesses;
@@ -138,6 +138,7 @@ namespace Antymology.Agents
                     Random.Range(0.0f, 0.05f),
                     Random.Range(0.0f, 0.08f),
                     Random.Range(0.0f, 0.05f),
+                    Random.Range(0.0f, 0.1f),
                     Random.Range(1, 6),
                     Random.Range(1, 6),
                     Random.Range(4, 12),
@@ -172,6 +173,7 @@ namespace Antymology.Agents
                 child.eatProbability = Mathf.Clamp01(child.eatProbability + Random.Range(-0.01f, 0.01f));
                 child.buildProbability = Mathf.Clamp01(child.buildProbability + Random.Range(-0.02f, 0.02f));
                 child.queenBuildProbability = Mathf.Clamp01(child.queenBuildProbability + Random.Range(-0.02f, 0.02f));
+                child.shareHealthProbability = Mathf.Clamp01(child.shareHealthProbability + Random.Range(-0.02f, 0.02f));
                 int newDigTicks = child.ticksBetweenDigs + Random.Range(-1, 2);
                 child.ticksBetweenDigs = (int)Mathf.Clamp(newDigTicks, 1, 20);
                 int newEatTicks = child.ticksBetweenEats + Random.Range(-1, 2);
