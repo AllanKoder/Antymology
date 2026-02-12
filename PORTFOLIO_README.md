@@ -2,7 +2,7 @@
 
 An ant colony simulation and evolutionary sandbox.
 
-![Ant colony simulation preview](Images/Ants.gif)
+[Overview](./Images/overview.png)
 
 Table of contents
 - Project overview
@@ -14,11 +14,9 @@ Table of contents
 - Known issues and testing notes
 - Contact / next steps
 
-Project overview
+## Project overview
 
-Antymology is an experimental agent-based simulation written in Unity that models ant behaviour in a discrete 3D block world. The simulation supports an evolutionary loop that breeds and evaluates ant behaviour genomes to maximize the number of nest blocks produced in the world. The environment contains reusable terrain chunks, a variety of block types (mulch, container, acid, air, etc.), a queen agent that produces nests, and worker agents that forage, dig, eat, and build.
-
-The project is useful as a research playground for emergent behaviour, evolution experiments, and performance trade-offs in simulation systems.
+We are modelling ant behaviour in a discrete 3D block world. The simulation supports an evolutionary loop that breeds and evaluates ant behaviour genomes to maximize the number of nest blocks produced in the world. The environment contains reusable terrain chunks, a variety of block types (mulch, container, acid, air, etc.), a queen agent that produces nests, and worker agents that forage, dig, eat, and build.
 
 Features implemented and maintained (high level)
 - Discrete block-based world with chunked storage and regeneration (WorldManager).
@@ -33,7 +31,7 @@ Features implemented and maintained (high level)
 
 ## Technical architecture
 
--a Assets/Components with modules:
+- A Assets/Components with modules:
   - Agents: Ant, AntManager, EvolutionManager, QueenAnt
   - UI: UIManager, SimulationUI, TextMeshPro-based HUD elements.
 
@@ -45,27 +43,18 @@ Features implemented and maintained (high level)
 
 ## Highlights
 
-1) WorldManager correctness and safety
-- Fixed out-of-bounds checks and neighbour chunk update logic (bug where updateX was used instead of updateZ when checking Z neighbours).
-- Consolidated local chunk GetBlock/SetBlock into single world-coordinate implementations to reduce duplication and centralize bounds handling.
-- Added null-safety for Blocks to avoid NullReferenceExceptions when world data is not yet initialized.
-
-2) Evolution and evaluation speed
+1) Evolution and evaluation speed
 - Reworked AntManager timestep handling to support a fast-forward mode that scales simulation progress (more logical steps per frame) while preserving a smooth visual experience.
 - Ensured evolution (EvolutionManager) consumes more evaluation time in fast mode so "time moves faster" truly accelerates genome evaluation throughput rather than only speeding visuals.
 
-3) Ant behaviour and building
-- Implemented build actions for workers (place a ContainerBlock below/at position and move up), and queen-only nest-production behavior driven by queen-specific genome parameters.
+2) Ant behaviour and building
+- Implemented build actions for workers (place a Green Block below/at position and move up), and queen-only nest-production behavior driven by queen-specific genome parameters.
 - Added build cooldowns and health costs to balance behaviour.
 
-4) UI and developer ergonomics
+3) UI and developer ergonomics
 - Added UI fields showing Best evolved genome and the currently testing genome; added non-evolving and fast-forward text indicators (so reviewers can immediately see simulation mode).
 - Changed fast-mode camera handling so the Camera component remains enabled instead of toggling the GameObject—this prevents display issues.
-- Added a global keyboard toggle (N) for Non-Evolving Mode and F for Fast Mode to ease demonstration and manual testing.
-
-5) Robustness and safety
-- Guarded EvolutionManager.Tick against index out-of-range and ensured fitness array lengths match population size.
-- Clamped genome mutation values during evolution to valid ranges.
+- Added a global keyboard toggle (N) for Non-Evolving Mode and (F) for Fast Mode to ease demonstration and manual testing.
 
 ## How to run (developer instructions)
 
@@ -79,5 +68,34 @@ Open this repository in Unity (6000.3.x).
 ### Recommendations
 - Do some fast mode before trying out the Non-evolving mode and viewing the best
 
-
 ## Emergent Properties
+
+### Important Changes
+Ants commonly exibihited the behavior of digging into holes - from a combination of eating Mulch and digging down - resulting in their slow and depressing deaths. This was a tragic and common behavior with the ants, and therefore, I created a new property for ants: the ability to build upwards. Building a grass block for ants takes up 10% of their health and allows for more interesting emergent properties. This also prevented tragic deaths.
+
+### Evolution Changes
+Ants originally just dug about, usually digging into their holes - with no escape or anywhere to go - and end up dying in a hole. After some evolutions, the ants either start digging less (not eating less as they still needed food), or they started moving more. The probabilities for movement was as high as 50% sometimes. This made it diffiuclt to stay in the same area, and prevented falling into a hole.
+
+There was a balance of trying to eat as much mulch as possible, to both build more queen nests and share health with the queen. As a result, the movement Genome became the most important factor: ants needed to travel in order to find more mulch and prevent falling into a hole.
+
+Eating was much more important than digging as a factor. Hence, the ants have a higher eating than digging probabilty.
+
+The queen builds her nests as often as possible, with a high probabilty of at least 10%.
+
+[Queen In a Local Max](./Images/local_max.png)
+
+### Local Maxes
+Hitting a local max was common, as there are only 6 genomes being evaluated. Sometimes the build ticks for a queen nest was very high:
+
+[Queen In a Local Max](./Images/local_max.png)
+
+### Patterns
+
+The queen would travel around, and create nests in a somewhat random pattern, typically a circle from the spawning location. However, the queen would typically benefit from wandering and getting further from the original nest position. This way, she would be able to eat more mulch and prevent digging the original nest blocks that she has placed (yes, she can dig her own nests)
+
+[Queen In a Local Max](./Images/local_max.png)
+
+## Improvements to future iterations
+As it was quite a tight deadline, and difficult enough to implement a genetic algorithm in Unity, I did not get a chance to create any advanced agents. Here are some things I would've done if I had the time:
+- Implement a neural network for complex ant behaviors, as the ant behavior is currently prefined and customized via probability. The genetic algorithm genomes could be used to fine tune this neural network instead of only messing around with probabilities.
+- Have pheromones deposited for communication between Ants. Currently ants are very independent of each other. The only real form of interaction between them as of now is the placement of blocks, and the sharing of health with others.
