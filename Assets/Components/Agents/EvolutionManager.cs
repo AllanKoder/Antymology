@@ -34,6 +34,9 @@ namespace Antymology.Agents
             evalIndex = 0;
             StartEvaluationGenome(evalIndex);
             isEvolving = true;
+            // Inform AntManager that a new generation (initial) has started
+            if (Antymology.Agents.AntManager.Instance != null)
+                Antymology.Agents.AntManager.Instance.AdvanceGeneration();
         }
 
         /// <summary>
@@ -168,6 +171,10 @@ namespace Antymology.Agents
 
             population = newPop;
             fitnesses = new List<int>(new int[population.Count]);
+
+            // inform AntManager that we advanced to the next generation
+            if (Antymology.Agents.AntManager.Instance != null)
+                Antymology.Agents.AntManager.Instance.AdvanceGeneration();
 
             Debug.Log($"EvolutionManager: Evolved to next population. Best previous fitness: {bestFitness}");
         }

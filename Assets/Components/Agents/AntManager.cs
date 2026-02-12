@@ -414,5 +414,13 @@ namespace Antymology.Agents
         {
             return new List<Ant>(allAnts);
         }
+
+        /// <summary>
+        /// Advance the recorded generation counter (used by EvolutionManager).
+        /// </summary>
+        public void AdvanceGeneration()
+        {
+            currentGeneration++;
+        }
     }
 }
