@@ -21,6 +21,8 @@ namespace Antymology.Agents
         private int evalStepsRemaining = 0;
         private bool isEvolving = false;
 
+        public bool IsRunning => isEvolving;
+
         // Expose last-best genome for UI
         public Ant.BehaviorGenome BestGenome { get; private set; }
 
@@ -37,6 +39,18 @@ namespace Antymology.Agents
             // Inform AntManager that a new generation (initial) has started
             if (Antymology.Agents.AntManager.Instance != null)
                 Antymology.Agents.AntManager.Instance.AdvanceGeneration();
+        }
+
+        /// <summary>
+        /// Stop evolution if currently running.
+        /// </summary>
+        public void StopEvolutionIfRunning()
+        {
+            if (!isEvolving) return;
+            isEvolving = false;
+            // Clear population so StartEvolution restarts cleanly
+            population = null;
+            fitnesses = null;
         }
 
         /// <summary>
@@ -101,6 +115,15 @@ namespace Antymology.Agents
             AntManager.Instance.ResetNestCount();
 
             Debug.Log($"EvolutionManager: Evaluating genome {index}/{population.Count}");
+        }
+
+        /// <summary>
+        /// Returns the currently-testing genome if evolution is running.
+        /// </summary>
+        public System.Nullable<Ant.BehaviorGenome> GetCurrentGenome()
+        {
+            if (!isEvolving || population == null || evalIndex < 0 || evalIndex >= population.Count) return null;
+            return population[evalIndex];
         }
 
         private void InitializePopulation()

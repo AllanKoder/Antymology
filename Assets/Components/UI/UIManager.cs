@@ -14,6 +14,10 @@ namespace Antymology.UI
         public TMP_Text generationText;
         public TMP_Text aliveText;
         public TMP_Text bestGenomeText;
+        // Displays whether non-evolving mode is active
+        public TMP_Text nonEvolveText;
+        // Displays whether fast-forward is active
+        public TMP_Text isFastForwardingText;
         private GameObject mainCameraObject;
         // Track currently highlighted ant in the scene
         private Ant highlightedAnt = null;
@@ -45,6 +49,24 @@ namespace Antymology.UI
                 bestGenomeText.text = evolvedText;
             }
 
+            // Update non-evolving mode text
+            if (nonEvolveText != null)
+            {
+                bool nonEvolving = false;
+                if (EvolutionManager.Instance != null)
+                {
+                    nonEvolving = !EvolutionManager.Instance.IsRunning;
+                }
+                nonEvolveText.text = nonEvolving ? "Non-Evolving Mode: ON" : "Non-Evolving Mode: OFF";
+            }
+
+            // Update fast-forwarding text
+            if (isFastForwardingText != null)
+            {
+                bool fast = Antymology.Simulation.SimulationSettings.FastMode;
+                isFastForwardingText.text = fast ? "Fast Forwarding: ON" : "Fast Forwarding: OFF";
+            }
+
             // Toggle fast mode with F key: disables main camera and speeds up simulation
             if (Input.GetKeyDown(KeyCode.F))
             {
@@ -69,6 +91,28 @@ namespace Antymology.UI
                             camComp.enabled = true;
                         else
                             mainCameraObject.SetActive(true);
+                    }
+                }
+            }
+
+            // Toggle non-evolving mode with N key: stop/start evolution and spawn best genome when stopping
+            if (Input.GetKeyDown(KeyCode.N))
+            {
+                if (EvolutionManager.Instance != null)
+                {
+                    if (EvolutionManager.Instance.IsRunning)
+                    {
+                        EvolutionManager.Instance.StopEvolutionIfRunning();
+                        var best = EvolutionManager.Instance.BestGenome;
+                        if (Antymology.Agents.AntManager.Instance != null)
+                        {
+                            Antymology.Agents.AntManager.Instance.ClearAllAnts();
+                            Antymology.Agents.AntManager.Instance.SpawnColonyWithGenome(best);
+                        }
+                    }
+                    else
+                    {
+                        EvolutionManager.Instance.StartEvolution();
                     }
                 }
             }

@@ -35,7 +35,7 @@ namespace Antymology.Agents
 
             // Try to produce nest if health is sufficient
             float nestCost = maxHealth * AntConfiguration.Instance.NestProductionHealthCost;
-            if (health > nestCost * 1.5f && Random.value < 0.2f) // Only produce if well above cost
+            if (health > nestCost * 1.5f && Random.value < Genome.queenBuildProbability) // Only produce if well above cost
             {
                 TryProduceNest();
             }
