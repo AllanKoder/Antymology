@@ -445,7 +445,7 @@ namespace Antymology.Agents
             if (health - healthCost <= 0f) return false; // won't build if it would kill the ant
 
             // Place container block at current position
-            WorldManager.Instance.SetBlock(x, y, z, new ContainerBlock());
+            WorldManager.Instance.SetBlock(x, y, z, new GrassBlock());
 
             // Deduct health and set cooldown
             RemoveHealth(healthCost);

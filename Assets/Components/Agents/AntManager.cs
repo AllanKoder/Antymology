@@ -60,19 +60,21 @@ namespace Antymology.Agents
             float dt = Time.deltaTime * (Antymology.Simulation.SimulationSettings.FastMode ? Antymology.Simulation.SimulationSettings.TimeScaleMultiplier : 1f);
             timestepAccumulator += dt;
 
-            // If fast mode is enabled, allow processing multiple simulation timesteps per frame
-            // (accelerates evaluation). Otherwise process at most one timestep per frame to
-            // preserve the original visual pacing.
+            // Add scaled delta time to accumulator (so fast mode speeds up progress proportionally)
+            // and compute how many simulation steps to run this frame.
+            float scaledDt = Time.deltaTime * (Antymology.Simulation.SimulationSettings.FastMode ? Antymology.Simulation.SimulationSettings.TimeScaleMultiplier : 1f);
+            timestepAccumulator += scaledDt;
+
             if (Antymology.Simulation.SimulationSettings.FastMode)
             {
-                int steps = 0;
-                while (timestepAccumulator >= AntConfiguration.Instance.timestepDuration)
+                int steps = Mathf.FloorToInt(timestepAccumulator / AntConfiguration.Instance.timestepDuration);
+                if (steps > 0)
                 {
-                    timestepAccumulator -= AntConfiguration.Instance.timestepDuration;
-                    SimulationUpdate();
-                    steps++;
-                    // safety cap to avoid spiraling if frame times are huge
-                    if (steps >= 20) { timestepAccumulator = 0f; break; }
+                    // safety cap
+                    int cap = 2000;
+                    if (steps > cap) steps = cap;
+                    for (int i = 0; i < steps; i++) SimulationUpdate();
+                    timestepAccumulator -= steps * AntConfiguration.Instance.timestepDuration;
                 }
             }
             else
